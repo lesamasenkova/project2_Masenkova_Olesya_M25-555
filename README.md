@@ -154,16 +154,3 @@ project2_Masenkova_Olesya_M25-555/
 ├── db_meta.json # Метаданные таблиц
 ├── Makefile
 └── pyproject.toml
-
-## Развитие проекта
-
-Возможные улучшения:
-- [ ] Поддержка JOIN операций
-- [ ] Индексирование для быстрого поиска
-- [ ] Экспорт/импорт данных (CSV, XML)
-- [ ] Резервное копирование
-- [ ] Транзакции
-
-##ACIINEMA 
-
-https://asciinema.org/a/YDrOXuBjS94mCSemZBXLRMAoL
