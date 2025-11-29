@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "project2_Masenkova_Olesya_M25-555"
 version = "0.1.0"
-description = ""
+description = "Primitive database management system with CRUD operations"
 authors = ["Olesya Masenkova <your.email@example.com>"]
 readme = "README.md"
 

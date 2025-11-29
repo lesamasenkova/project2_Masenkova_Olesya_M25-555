@@ -5,6 +5,11 @@ import shlex
 import prompt
 
 from src.decorators import create_cacher
+from src.primitive_db.constants import (
+    INFO_INVALID_VALUE,
+    METADATA_FILE,
+    PROMPT_COMMAND,
+)
 from src.primitive_db.core import (
     create_table,
     delete,
@@ -16,15 +21,17 @@ from src.primitive_db.core import (
     show_table_info,
     update,
 )
-from src.primitive_db.parser import parse_set_clause, parse_values, parse_where_clause
+from src.primitive_db.parser import (
+    parse_set_clause,
+    parse_values,
+    parse_where_clause,
+)
 from src.primitive_db.utils import (
     load_metadata,
     load_table_data,
     save_metadata,
     save_table_data,
 )
-
-METADATA_FILE = "db_meta.json"
 
 # Initialize cacher for select operations
 cacher = create_cacher()
@@ -52,7 +59,9 @@ def print_help():
         "- удалить запись."
     )
     print("mmand> info <имя_таблицы> - вывести информацию о таблице.")
-    print("mmand> create_table <имя_таблицы> <столбец1:тип> .. - создать таблицу")
+    print(
+        "mmand> create_table <имя_таблицы> <столбец1:тип> .. - создать таблицу"
+    )
     print("mmand> list_tables - показать список всех таблиц")
     print("mmand> drop_table <имя_таблицы> - удалить таблицу")
     print("\nОбщие команды:")
@@ -62,32 +71,11 @@ def print_help():
 
 def run():
     """Run the main database engine loop."""
-    print("\n***Операции с данными***\n")
-    print("Функции:")
-    print(
-        "mmand> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) "
-        "- создать запись."
-    )
-    print(
-        "mmand> select from <имя_таблицы> where <столбец> = <значение> "
-        "- прочитать записи по условию."
-    )
-    print("mmand> select from <имя_таблицы> - прочитать все записи.")
-    print(
-        "mmand> update <имя_таблицы> set <столбец1> = <новое_значение1> "
-        "where <столбец_условия> = <значение_условия> - обновить запись."
-    )
-    print(
-        "mmand> delete from <имя_таблицы> where <столбец> = <значение> "
-        "- удалить запись."
-    )
-    print("mmand> info <имя_таблицы> - вывести информацию о таблице.")
-    print("mmand> exit - выход из программы")
-    print("mmand> help - справочная информация\n")
+    print_help()
 
     while True:
         try:
-            user_input = prompt.string(">>>Введите команду: ").strip()
+            user_input = prompt.string(PROMPT_COMMAND).strip()
 
             if not user_input:
                 continue
@@ -109,7 +97,7 @@ def run():
                 args = shlex.split(user_input)
                 metadata = load_metadata(METADATA_FILE)
                 if len(args) < 2:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
                 table_name = args[1]
                 columns = args[2:] if len(args) > 2 else []
@@ -120,7 +108,7 @@ def run():
                 args = shlex.split(user_input)
                 metadata = load_metadata(METADATA_FILE)
                 if len(args) < 2:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
                 table_name = args[1]
                 metadata = drop_table(metadata, table_name)
@@ -132,7 +120,7 @@ def run():
                 metadata = load_metadata(METADATA_FILE)
 
                 if "values" not in user_lower:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_name = args[2]
@@ -142,7 +130,7 @@ def run():
                 )
 
                 if values_start is None:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 values_str = " ".join(args[values_start + 1 :])
@@ -178,7 +166,9 @@ def run():
 
                 # Use cacher for select results
                 cache_key = f"{table_name}:{where_clause}"
-                result = cacher(cache_key, lambda: select(table_data, where_clause))
+                result = cacher(
+                    cache_key, lambda: select(table_data, where_clause)
+                )
                 columns = metadata[table_name]["columns"]
                 display_table(result, columns)
 
@@ -187,7 +177,7 @@ def run():
                 metadata = load_metadata(METADATA_FILE)
 
                 if "set" not in user_lower or "where" not in user_lower:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_name = args[1]
@@ -200,11 +190,12 @@ def run():
                     (i for i, a in enumerate(args) if a.lower() == "set"), None
                 )
                 where_idx = next(
-                    (i for i, a in enumerate(args) if a.lower() == "where"), None
+                    (i for i, a in enumerate(args) if a.lower() == "where"),
+                    None,
                 )
 
                 if set_idx is None or where_idx is None:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 set_str = " ".join(args[set_idx + 1 : where_idx])
@@ -214,11 +205,13 @@ def run():
                 where_clause = parse_where_clause(where_str)
 
                 if not set_clause or not where_clause:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_data = load_table_data(table_name)
-                table_data = update(table_name, table_data, set_clause, where_clause)
+                table_data = update(
+                    table_name, table_data, set_clause, where_clause
+                )
                 save_table_data(table_name, table_data)
 
             elif user_lower.startswith("delete from "):
@@ -226,7 +219,7 @@ def run():
                 metadata = load_metadata(METADATA_FILE)
 
                 if "where" not in user_lower:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_name = args[2]
@@ -236,22 +229,24 @@ def run():
                     continue
 
                 where_idx = next(
-                    (i for i, a in enumerate(args) if a.lower() == "where"), None
+                    (i for i, a in enumerate(args) if a.lower() == "where"),
+                    None,
                 )
 
                 if where_idx is None:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 where_str = " ".join(args[where_idx + 1 :])
                 where_clause = parse_where_clause(where_str)
 
                 if not where_clause:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_data = load_table_data(table_name)
                 table_data = delete(table_name, table_data, where_clause)
+                # Проверяем подтверждение (если None, пользователь отказал)
                 if table_data is not None:
                     save_table_data(table_name, table_data)
 
@@ -260,7 +255,7 @@ def run():
                 metadata = load_metadata(METADATA_FILE)
 
                 if len(args) < 2:
-                    print("Некорректное значение. Попробуйте снова.")
+                    print(INFO_INVALID_VALUE)
                     continue
 
                 table_name = args[1]

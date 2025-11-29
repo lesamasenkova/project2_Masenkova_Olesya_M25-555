@@ -32,7 +32,6 @@ make project
 Или напрямую через poetry
 poetry run project
 
-
 ## Управление таблицами
 
 ### Команды создания и удаления таблиц
@@ -55,6 +54,7 @@ create_table users name:str age:int is_active:bool
 list_tables
 
 users
+
 
 ## CRUD-операции
 
@@ -152,7 +152,6 @@ project2_Masenkova_Olesya_M25-555/
 ├── Makefile
 └── pyproject.toml
 
-
 ## Развитие проекта
 
 Возможные улучшения:
@@ -161,3 +160,7 @@ project2_Masenkova_Olesya_M25-555/
 - [ ] Экспорт/импорт данных (CSV, XML)
 - [ ] Резервное копирование
 - [ ] Транзакции
+
+##ACIINEMA 
+
+https://asciinema.org/a/YDrOXuBjS94mCSemZBXLRMAoL

@@ -4,6 +4,12 @@ import time
 
 import prompt
 
+from src.primitive_db.constants import (
+    INFO_OPERATION_CANCELLED,
+    PROMPT_CONFIRM,
+    TIMING_FORMAT,
+)
+
 
 def handle_db_errors(func):
     """
@@ -44,13 +50,13 @@ def confirm_action(action_name):
     def decorator(func):
         def wrapper(*args, **kwargs):
             confirmation = prompt.string(
-                f'Вы уверены, что хотите выполнить "{action_name}"? [y/n]: '
+                PROMPT_CONFIRM.format(action=action_name)
             ).strip().lower()
 
             if confirmation == "y":
                 return func(*args, **kwargs)
             else:
-                print("Операция отменена.")
+                print(INFO_OPERATION_CANCELLED)
                 return None
 
         return wrapper
@@ -71,7 +77,7 @@ def log_time(func):
         end_time = time.monotonic()
 
         elapsed_time = end_time - start_time
-        print(f"Функция {func.__name__} выполнилась за {elapsed_time:.3f} секунд.")
+        print(TIMING_FORMAT.format(func_name=func.__name__, elapsed_time=elapsed_time))
 
         return result
 

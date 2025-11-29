@@ -3,8 +3,23 @@
 from prettytable import PrettyTable
 
 from src.decorators import confirm_action, handle_db_errors, log_time
-
-VALID_TYPES = {"int", "str", "bool"}
+from src.primitive_db.constants import (
+    CONFIRM_DELETE_RECORD,
+    CONFIRM_DELETE_TABLE,
+    ERROR_INVALID_VALUE,
+    ERROR_TABLE_EXISTS,
+    ERROR_TABLE_NOT_FOUND,
+    INFO_NO_DATA,
+    INFO_NO_DELETIONS,
+    INFO_NO_TABLES,
+    INFO_NO_UPDATES,
+    SUCCESS_RECORD_DELETED,
+    SUCCESS_RECORD_INSERTED,
+    SUCCESS_RECORD_UPDATED,
+    SUCCESS_TABLE_CREATED,
+    SUCCESS_TABLE_DELETED,
+    VALID_TYPES,
+)
 
 
 @handle_db_errors
@@ -21,7 +36,7 @@ def create_table(metadata, table_name, columns):
         Updated metadata dictionary
     """
     if table_name in metadata:
-        raise KeyError(f'Таблица "{table_name}" уже существует.')
+        raise KeyError(ERROR_TABLE_EXISTS.format(table_name=table_name))
 
     parsed_columns = []
     parsed_columns.append(("ID", "int"))
@@ -42,12 +57,16 @@ def create_table(metadata, table_name, columns):
     }
 
     columns_str = ", ".join([f"{name}:{typ}" for name, typ in parsed_columns])
-    print(f'Таблица "{table_name}" успешно создана со столбцами: {columns_str}')
+    print(
+        SUCCESS_TABLE_CREATED.format(
+            table_name=table_name, columns_str=columns_str
+        )
+    )
 
     return metadata
 
 
-@confirm_action("удаление таблицы")
+@confirm_action(CONFIRM_DELETE_TABLE)
 @handle_db_errors
 def drop_table(metadata, table_name):
     """
@@ -61,10 +80,10 @@ def drop_table(metadata, table_name):
         Updated metadata dictionary
     """
     if table_name not in metadata:
-        raise KeyError(f'Таблица "{table_name}" не существует.')
+        raise KeyError(ERROR_TABLE_NOT_FOUND.format(table_name=table_name))
 
     del metadata[table_name]
-    print(f'Таблица "{table_name}" успешно удалена.')
+    print(SUCCESS_TABLE_DELETED.format(table_name=table_name))
 
     return metadata
 
@@ -78,7 +97,7 @@ def list_tables(metadata):
         metadata: Current metadata dictionary
     """
     if not metadata:
-        print("Таблицы отсутствуют.")
+        print(INFO_NO_TABLES)
         return
 
     for table_name in metadata:
@@ -132,7 +151,7 @@ def insert(metadata, table_name, values, table_data):
         Updated table data or None if error
     """
     if table_name not in metadata:
-        raise KeyError(f'Таблица "{table_name}" не существует.')
+        raise KeyError(ERROR_TABLE_NOT_FOUND.format(table_name=table_name))
 
     columns = metadata[table_name]["columns"]
 
@@ -156,14 +175,19 @@ def insert(metadata, table_name, values, table_data):
         validated_value = validate_value(value, col_type)
         if validated_value is None and col_type != "str":
             raise ValueError(
-                f"Некорректное значение '{value}' для столбца "
-                f"'{col_name}' типа '{col_type}'."
+                ERROR_INVALID_VALUE.format(
+                    value=value, column=col_name, col_type=col_type
+                )
             )
 
         record[col_name] = validated_value
 
     table_data.append(record)
-    print(f'Запись с ID={new_id} успешно добавлена в таблицу "{table_name}".')
+    print(
+        SUCCESS_RECORD_INSERTED.format(
+            record_id=new_id, table_name=table_name
+        )
+    )
 
     return table_data
 
@@ -235,17 +259,18 @@ def update(table_name, table_data, set_clause, where_clause):
                     break
             if match:
                 print(
-                    f'Запись с ID={record["ID"]} в таблице "{table_name}" '
-                    f"успешно обновлена."
+                    SUCCESS_RECORD_UPDATED.format(
+                        record_id=record["ID"], table_name=table_name
+                    )
                 )
                 break
     else:
-        print("Записи для обновления не найдены.")
+        print(INFO_NO_UPDATES)
 
     return table_data
 
 
-@confirm_action("удаление записи")
+@confirm_action(CONFIRM_DELETE_RECORD)
 @handle_db_errors
 def delete(table_name, table_data, where_clause):
     """
@@ -257,7 +282,7 @@ def delete(table_name, table_data, where_clause):
         where_clause: Dictionary like {'ID': 1}
 
     Returns:
-        Updated table data
+        Updated table data or None if cancelled
     """
     deleted_ids = []
 
@@ -277,11 +302,12 @@ def delete(table_name, table_data, where_clause):
     if deleted_ids:
         for deleted_id in deleted_ids:
             print(
-                f'Запись с ID={deleted_id} успешно удалена из таблицы '
-                f'"{table_name}".'
+                SUCCESS_RECORD_DELETED.format(
+                    record_id=deleted_id, table_name=table_name
+                )
             )
     else:
-        print("Записи для удаления не найдены.")
+        print(INFO_NO_DELETIONS)
 
     return new_data
 
@@ -295,7 +321,7 @@ def display_table(table_data, columns):
         columns: List of column definitions
     """
     if not table_data:
-        print("Нет данных для отображения.")
+        print(INFO_NO_DATA)
         return
 
     table = PrettyTable()
@@ -320,7 +346,7 @@ def show_table_info(metadata, table_name, table_data):
         table_data: Table data
     """
     if table_name not in metadata:
-        raise KeyError(f'Таблица "{table_name}" не существует.')
+        raise KeyError(ERROR_TABLE_NOT_FOUND.format(table_name=table_name))
 
     columns = metadata[table_name]["columns"]
     columns_str = ", ".join([f"{col['name']}:{col['type']}" for col in columns])
