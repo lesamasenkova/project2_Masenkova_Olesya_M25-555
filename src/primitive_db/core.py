@@ -2,9 +2,12 @@
 
 from prettytable import PrettyTable
 
+from src.decorators import confirm_action, handle_db_errors, log_time
+
 VALID_TYPES = {"int", "str", "bool"}
 
 
+@handle_db_errors
 def create_table(metadata, table_name, columns):
     """
     Create a new table.
@@ -18,22 +21,19 @@ def create_table(metadata, table_name, columns):
         Updated metadata dictionary
     """
     if table_name in metadata:
-        print(f'Ошибка: Таблица "{table_name}" уже существует.')
-        return metadata
+        raise KeyError(f'Таблица "{table_name}" уже существует.')
 
     parsed_columns = []
     parsed_columns.append(("ID", "int"))
 
     for col in columns:
         if ":" not in col:
-            print(f"Некорректное значение: {col}. Попробуйте снова.")
-            return metadata
+            raise ValueError(f"Некорректное значение: {col}")
 
         col_name, col_type = col.split(":", 1)
 
         if col_type not in VALID_TYPES:
-            print(f"Некорректное значение: {col}. Попробуйте снова.")
-            return metadata
+            raise ValueError(f"Некорректное значение: {col}")
 
         parsed_columns.append((col_name, col_type))
 
@@ -47,6 +47,8 @@ def create_table(metadata, table_name, columns):
     return metadata
 
 
+@confirm_action("удаление таблицы")
+@handle_db_errors
 def drop_table(metadata, table_name):
     """
     Delete a table.
@@ -59,8 +61,7 @@ def drop_table(metadata, table_name):
         Updated metadata dictionary
     """
     if table_name not in metadata:
-        print(f'Ошибка: Таблица "{table_name}" не существует.')
-        return metadata
+        raise KeyError(f'Таблица "{table_name}" не существует.')
 
     del metadata[table_name]
     print(f'Таблица "{table_name}" успешно удалена.')
@@ -68,6 +69,7 @@ def drop_table(metadata, table_name):
     return metadata
 
 
+@handle_db_errors
 def list_tables(metadata):
     """
     List all tables.
@@ -114,6 +116,8 @@ def validate_value(value, expected_type):
     return None
 
 
+@handle_db_errors
+@log_time
 def insert(metadata, table_name, values, table_data):
     """
     Insert a new record into table.
@@ -128,40 +132,33 @@ def insert(metadata, table_name, values, table_data):
         Updated table data or None if error
     """
     if table_name not in metadata:
-        print(f'Ошибка: Таблица "{table_name}" не существует.')
-        return None
+        raise KeyError(f'Таблица "{table_name}" не существует.')
 
     columns = metadata[table_name]["columns"]
 
-    # Check number of values (excluding ID)
     if len(values) != len(columns) - 1:
-        print(
-            f"Ошибка: Ожидается {len(columns) - 1} значений, "
-            f"получено {len(values)}."
+        raise ValueError(
+            f"Ожидается {len(columns) - 1} значений, получено {len(values)}."
         )
-        return None
 
-    # Generate new ID
     if table_data:
         new_id = max(record["ID"] for record in table_data) + 1
     else:
         new_id = 1
 
-    # Validate and create record
     record = {"ID": new_id}
 
     for i, value in enumerate(values):
-        col = columns[i + 1]  # Skip ID column
+        col = columns[i + 1]
         col_name = col["name"]
         col_type = col["type"]
 
         validated_value = validate_value(value, col_type)
         if validated_value is None and col_type != "str":
-            print(
-                f"Ошибка: Некорректное значение '{value}' "
-                f"для столбца '{col_name}' типа '{col_type}'."
+            raise ValueError(
+                f"Некорректное значение '{value}' для столбца "
+                f"'{col_name}' типа '{col_type}'."
             )
-            return None
 
         record[col_name] = validated_value
 
@@ -171,6 +168,8 @@ def insert(metadata, table_name, values, table_data):
     return table_data
 
 
+@handle_db_errors
+@log_time
 def select(table_data, where_clause=None):
     """
     Select records from table.
@@ -198,6 +197,7 @@ def select(table_data, where_clause=None):
     return result
 
 
+@handle_db_errors
 def update(table_name, table_data, set_clause, where_clause):
     """
     Update records in table.
@@ -227,7 +227,6 @@ def update(table_name, table_data, set_clause, where_clause):
                     updated_count += 1
 
     if updated_count > 0:
-        # Get ID of first updated record for message
         for record in table_data:
             match = True
             for key, value in where_clause.items():
@@ -246,6 +245,8 @@ def update(table_name, table_data, set_clause, where_clause):
     return table_data
 
 
+@confirm_action("удаление записи")
+@handle_db_errors
 def delete(table_name, table_data, where_clause):
     """
     Delete records from table.
@@ -276,7 +277,8 @@ def delete(table_name, table_data, where_clause):
     if deleted_ids:
         for deleted_id in deleted_ids:
             print(
-                f'Запись с ID={deleted_id} успешно удалена из таблицы "{table_name}".'
+                f'Запись с ID={deleted_id} успешно удалена из таблицы '
+                f'"{table_name}".'
             )
     else:
         print("Записи для удаления не найдены.")
@@ -307,6 +309,7 @@ def display_table(table_data, columns):
     print(table)
 
 
+@handle_db_errors
 def show_table_info(metadata, table_name, table_data):
     """
     Show table information.
@@ -317,8 +320,7 @@ def show_table_info(metadata, table_name, table_data):
         table_data: Table data
     """
     if table_name not in metadata:
-        print(f'Ошибка: Таблица "{table_name}" не существует.')
-        return
+        raise KeyError(f'Таблица "{table_name}" не существует.')
 
     columns = metadata[table_name]["columns"]
     columns_str = ", ".join([f"{col['name']}:{col['type']}" for col in columns])

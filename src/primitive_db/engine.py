@@ -4,6 +4,7 @@ import shlex
 
 import prompt
 
+from src.decorators import create_cacher
 from src.primitive_db.core import (
     create_table,
     delete,
@@ -24,6 +25,9 @@ from src.primitive_db.utils import (
 )
 
 METADATA_FILE = "db_meta.json"
+
+# Initialize cacher for select operations
+cacher = create_cacher()
 
 
 def print_help():
@@ -120,7 +124,8 @@ def run():
                     continue
                 table_name = args[1]
                 metadata = drop_table(metadata, table_name)
-                save_metadata(METADATA_FILE, metadata)
+                if metadata is not None:
+                    save_metadata(METADATA_FILE, metadata)
 
             elif user_lower.startswith("insert into "):
                 args = shlex.split(user_input)
@@ -171,7 +176,9 @@ def run():
                         where_str = " ".join(args[where_idx + 1 :])
                         where_clause = parse_where_clause(where_str)
 
-                result = select(table_data, where_clause)
+                # Use cacher for select results
+                cache_key = f"{table_name}:{where_clause}"
+                result = cacher(cache_key, lambda: select(table_data, where_clause))
                 columns = metadata[table_name]["columns"]
                 display_table(result, columns)
 
@@ -245,7 +252,8 @@ def run():
 
                 table_data = load_table_data(table_name)
                 table_data = delete(table_name, table_data, where_clause)
-                save_table_data(table_name, table_data)
+                if table_data is not None:
+                    save_table_data(table_name, table_data)
 
             elif user_lower.startswith("info "):
                 args = shlex.split(user_input)
