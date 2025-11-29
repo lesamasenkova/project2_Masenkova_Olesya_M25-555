@@ -1,6 +1,7 @@
 """Utility functions for file operations."""
 
 import json
+import os
 
 
 def load_metadata(filepath):
@@ -28,6 +29,40 @@ def save_metadata(filepath, data):
         filepath: Path to JSON file
         data: Dictionary to save
     """
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_table_data(table_name):
+    """
+    Load table data from JSON file.
+
+    Args:
+        table_name: Name of the table
+
+    Returns:
+        List of records or empty list if file not found
+    """
+    filepath = f"data/{table_name}.json"
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+
+def save_table_data(table_name, data):
+    """
+    Save table data to JSON file.
+
+    Args:
+        table_name: Name of the table
+        data: List of records to save
+    """
+    # Create data directory if it doesn't exist
+    os.makedirs("data", exist_ok=True)
+
+    filepath = f"data/{table_name}.json"
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
