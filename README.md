@@ -1,4 +1,4 @@
-# project2_Masenkova_Olesya_M25-555
+# Примитивная база данных
 
 Primitive database management system - консольное приложение для управления примитивной базой данных с поддержкой CRUD-операций.
 
@@ -105,6 +105,9 @@ info users
 Таблица: users
 Столбцы: ID:int, name:str, age:int, is_active:bool
 Количество записей: 0
+
+## Демонстрация работы в Aciinema
+https://asciinema.org/a/YDrOXuBjS94mCSemZBXLRMAoL
 
 ## Продвинутые возможности
 
